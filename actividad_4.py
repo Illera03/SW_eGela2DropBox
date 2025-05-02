@@ -253,7 +253,7 @@ button3.pack(padx=2, pady=2)
 frame2.grid(row=1, column=3,  ipadx=10, ipady=10)
 
 for each in pdfs:
-    msg_listbox1.insert(tk.END, each['pdf_name'])
+    msg_listbox1.insert(tk.END, each['nombre'])
     msg_listbox1.yview(tk.END)
 
 dropbox.list_folder(msg_listbox2)

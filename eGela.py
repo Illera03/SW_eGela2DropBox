@@ -53,7 +53,7 @@ class eGela:
         progress_bar.update()
 
 
-        print("##### 1. PETICION #####")
+        print("##### 1. PETICIÓN #####")
         metodo = 'GET'
         uri = "https://egela.ehu.eus/login/index.php"
         cabeceras = {'Host': 'egela.ehu.eus'}
@@ -67,10 +67,6 @@ class eGela:
         print(f'Status code: {respuesta.status_code} | Descripción: {respuesta.reason}')
         print(f'Location: {respuesta.headers.get("Location", "No redirección")} | Cookie: {_cookie}')
         print("-" * 120)
-        #############################################
-        # RELLENAR CON CODIGO DE LA PETICION HTTP
-        # Y PROCESAMIENTO DE LA RESPUESTA HTTP
-        #############################################
 
         progress = 25
         progress_var.set(progress)
@@ -78,11 +74,7 @@ class eGela:
         time.sleep(1)
 
 
-        print("\n##### 2. PETICION #####")
-        #############################################
-        # RELLENAR CON CODIGO DE LA PETICION HTTP
-        # Y PROCESAMIENTO DE LA RESPUESTA HTTP
-        #############################################
+        print("\n##### 2. PETICIÓN #####")
         metodo = 'POST'
         cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': _cookie,
                      'Content-Type': 'application/x-www-form-urlencoded'}
@@ -115,8 +107,9 @@ class eGela:
         progress_var.set(progress)
         progress_bar.update()
         time.sleep(1)
+        
         if "testsession" in str(loginComprobar):
-            print("\n##### 3. PETICION #####")
+            print("\n##### 3. PETICIÓN #####")
             metodo = 'GET'
             uri = respuesta.headers["Location"]
             cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': _cookie}
@@ -168,7 +161,7 @@ class eGela:
         progress_var.set(progress)
         progress_bar.update()
 
-        print("\n##### 4. PETICION (Página principal de la asignatura en eGela) #####")
+        print("\n##### 4. PETICIÓN (Página principal de la asignatura en eGela) #####")
         metodo = 'GET'
         cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': self._cookie}
         print(f'Método: {metodo} | URI: {self._curso}')
@@ -181,12 +174,12 @@ class eGela:
         tabs = soup.select(".nav.nav-tabs .nav-item a.nav-link")
 
         for tab in tabs:
-            title = tab.contents[0].strip()  # obtiene elnombre de la seccion
+            title = tab.contents[0].strip()  # obtiene el nombre de la sección
             link = tab.get("href")
             if link and "&section" in link:
-                sections[title] = link  # mete el link de la seccion
-        NUMERO_DE_Secciones_EN_EGELA = len(sections)
-        progress_step = float(100.0 / NUMERO_DE_Secciones_EN_EGELA)
+                sections[title] = link  # mete el link de la sección
+        num_secciones_eGela = len(sections)
+        progress_step = float(100.0 / num_secciones_eGela)
 
 
         print("\n##### Analisis del HTML... #####")
@@ -204,7 +197,7 @@ class eGela:
                         "uri": uri,
                         "nombre": nombre_archivo,
                     })
-            progress_step = float(100.0 / NUMERO_DE_Secciones_EN_EGELA)
+            progress_step = float(100.0 / num_secciones_eGela)
             progress += progress_step
             progress_var.set(progress)
             progress_bar.update()
@@ -217,19 +210,15 @@ class eGela:
 
     def get_pdf(self, selection):
 
-        print("\t##### descargando  PDF... #####")
+        print("\t##### Descargando  PDF... #####")
         cabeceras = {
             'Cookie': f'MoodleSessionegela={self._cookie}'
         }
         pdf_object = self._refs[selection]
-        pdf_name = pdf_object['pdf_name'] + ".pdf"
-        pdf = pdf_object['pdf_link']
+        pdf_name = pdf_object['nombre'] + ".pdf"
+        pdf = pdf_object['uri']
         pdf_response = requests.request('GET', pdf, headers=cabeceras, allow_redirects=False)
         pdf_link = requests.request('GET', pdf_response.headers['Location'], headers=cabeceras, allow_redirects=False)
         pdf_content=pdf_link.content
-        #############################################
-        # RELLENAR CON CODIGO DE LA PETICION HTTP
-        # Y PROCESAMIENTO DE LA RESPUESTA HTTP
-        #############################################
 
         return pdf_name, pdf_content
