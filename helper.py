@@ -50,7 +50,7 @@ def update_listbox2(msg_listbox, path, edukia_json):
     for each in edukia_json['entries']:
         msg_listbox.insert(tk.END, each['name'])
         if each['.tag'] == "folder":
-            msg_listbox.itemconfigure(tk.END, background="green")
+            msg_listbox.itemconfigure(tk.END, background="darkgrey")
         files.append({'id': each['id'],
                             'name': each['name'],
                             '.tag': each['.tag']})

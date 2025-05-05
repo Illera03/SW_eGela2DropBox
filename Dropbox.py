@@ -96,8 +96,9 @@ class Dropbox:
             "Authorization": f"Bearer {self._access_token}",
             "Content-Type": "application/json"
         }
+        path = "" if self._path == "/" else self._path
         data = json.dumps({
-            "path": self._path,
+            "path": path,
             "recursive": False,
             "include_media_info": False,
             "include_deleted": False,
@@ -133,8 +134,8 @@ class Dropbox:
             all_entries.extend(contenido_json.get("entries", []))
 
         # Mostrar todo en la interfaz
-        contenido_json = {"entries": all_entries}
-        self._files = helper.update_listbox2(msg_listbox, self._path, contenido_json)
+        msg_listbox = helper.update_listbox2(msg_listbox, self._path, {"entries": all_entries})
+        self._files = msg_listbox
 
     def transfer_file(self, file_path, file_data):
         print("/upload")
@@ -182,6 +183,22 @@ class Dropbox:
 
         data = json.dumps({ "path": path, "autorename": False })
 
+        response = requests.post(uri, headers=headers, data=data)
+        print("\tStatus:", response.status_code)
+        print("\tRespuesta:", response.text)
+
+    def rename_file(self, from_path, to_path):
+        print("/rename_file")
+        uri = 'https://api.dropboxapi.com/2/files/move_v2'
+        headers = {
+            "Authorization": f"Bearer {self._access_token}",
+            "Content-Type": "application/json"
+        }
+        data = json.dumps({
+            "from_path": from_path,
+            "to_path": to_path,
+            "autorename": False
+        })
         response = requests.post(uri, headers=headers, data=data)
         print("\tStatus:", response.status_code)
         print("\tRespuesta:", response.text)
