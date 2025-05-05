@@ -2,10 +2,11 @@
 from tkinter import messagebox
 import requests
 import urllib
-from urllib.parse import unquote, urljoin
+from urllib.parse import unquote
 from bs4 import BeautifulSoup
 import time
 import helper
+from urllib.parse import urljoin
 import os
 
 class eGela:
@@ -14,42 +15,36 @@ class eGela:
     _curso = ""
     _refs = []
     _root = None
-
     def __init__(self, root):
         self._root = root
-        # Usamos una sesión para guardar cookies y mantener login
-        self.session = requests.Session()
+
 
     def obtener_uri_enlace(self, url):
         print(f"Obteniendo página: {url}")  # Mensaje de depuración
-        respuesta = self.session.get(url, allow_redirects=False)
-        print(f"Status: {respuesta.status_code}")  # Depuración
+        cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': self._cookie}
+        respuesta = requests.get(url, headers=cabeceras, allow_redirects=False)
+        print("Página obtenida correctamente")  # Mensaje de depuración
 
         # Obtenemos la Location (URI de redirección)
         location = respuesta.headers.get("Location", "No redirección")
-        location_utf8 = unquote(location)  # Decodificamos la URI
+        location_utf8 = urllib.parse.unquote(location)  # Decodificamos la URI
 
         # Extraemos el nombre del archivo (último componente de la URI)
         nombre_archivo = os.path.basename(location_utf8)
+
         return location_utf8, nombre_archivo
 
     # Función para extraer enlaces por /mod/resource en el link
-    def obtener_enlaces_resource(self, url):
+    def obtener_enlaces_resource(self,url):
         """Extrae enlaces de recursos desde una página."""
-        print(f"Extrayendo recursos de: {url}")  # Depuración
-        respuesta = self.session.get(url)
-        print(f"Status: {respuesta.status_code}")  # Depuración
+        respuesta = requests.request('GET', url, headers={'Host': 'egela.ehu.eus', 'Cookie': self._cookie})
         if respuesta.status_code != 200:
             return []
 
         soup = BeautifulSoup(respuesta.text, "html.parser")
-        enlaces = [
-            urljoin("https://egela.ehu.eus", a["href"])
-            for a in soup.find_all("a", href=True)
-            if "/mod/resource" in a["href"]
-        ]
-        print(f"{len(enlaces)} recursos encontrados")  # Depuración
-        return enlaces
+        return [urljoin("https://egela.ehu.eus", a["href"]) for a in soup.find_all("a", href=True) if
+                "/mod/resource" in a["href"]]
+
 
     def check_credentials(self, username, password, event=None):
         popup, progress_var, progress_bar = helper.progress("check_credentials", "Logging into eGela...")
@@ -57,75 +52,108 @@ class eGela:
         progress_var.set(progress)
         progress_bar.update()
 
+
         print("##### 1. PETICIÓN #####")
-        login_url = "https://egela.ehu.eus/login/index.php"
-        r1 = self.session.get(login_url, allow_redirects=True)
-        print(f"Status: {r1.status_code} | URL final: {r1.url}")
+        metodo = 'GET'
+        uri = "https://egela.ehu.eus/login/index.php"
+        cabeceras = {'Host': 'egela.ehu.eus'}
+        cuerpo = ''
+        print(f'Método: {metodo} | URI: {uri}')
+        print(f'Cuerpo: {cuerpo}')
+        respuesta = requests.request(metodo, uri, data=cuerpo, allow_redirects=False)
+        cookies_dict = respuesta.cookies.get_dict()
+        cookies_str = "; ".join([f"{k}={v}" for k, v in cookies_dict.items()])
+        _cookie = unquote(cookies_str)
+        print(f'Status code: {respuesta.status_code} | Descripción: {respuesta.reason}')
+        print(f'Location: {respuesta.headers.get("Location", "No redirección")} | Cookie: {_cookie}')
+        print("-" * 120)
+
         progress = 25
         progress_var.set(progress)
         progress_bar.update()
         time.sleep(1)
 
-        print("\n##### 2. EXTRAER TOKEN #####")
-        soup1 = BeautifulSoup(r1.text, "html.parser")
-        form = soup1.find("form", action=True)
-        if not form:
-            popup.destroy()
-            messagebox.showerror("Login Error", f"No se encontró formulario en {r1.url}")
-            return
-        action = form["action"]
-        if not action.startswith("http"):
-            action = urljoin(r1.url, action)
-        # Recogemos todos los campos hidden
-        data = {}
-        for inp in form.find_all("input"):
-            name = inp.get("name")
-            if name:
-                data[name] = inp.get("value", "")
-        print(f"Campos ocultos obtenidos: {list(data.keys())}")
+
+        print("\n##### 2. PETICIÓN #####")
+        metodo = 'POST'
+        cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': _cookie,
+                     'Content-Type': 'application/x-www-form-urlencoded'}
+        print(f'Método: {metodo} | URI: {uri}')
+        print(f'Cuerpo: {cuerpo}')
+        respuesta = requests.request(metodo, uri, headers=cabeceras, data=cuerpo, allow_redirects=False)
+        print(f'Status code: {respuesta.status_code} | Descripción: {respuesta.reason}')
+        print(f'Location: {respuesta.headers.get("Location", "No redirección")} | Cookie: {_cookie}')
+        print("-" * 120)
+        # Extraer el logintoken con BeautifulSoup
+        soup = BeautifulSoup(respuesta.text, "html.parser")
+        token_input = soup.find("input", {"name": "logintoken"})
+        logintoken = token_input["value"] if token_input else None
+        print(f"Logintoken extraído: {logintoken}")
+        metodo = 'POST'
+        cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': _cookie,
+                     'Content-Type': 'application/x-www-form-urlencoded'}
+        cuerpo = f'logintoken={logintoken}&username={str(username.get())}&password={str(password.get())}'
+        print(f'Método: {metodo} | URI: {uri}')
+        print(f'Cuerpo: {cuerpo}')
+        respuesta = requests.request(metodo, uri, headers=cabeceras, data=cuerpo, allow_redirects=False)
+        print(f'Status code: {respuesta.status_code} | Descripción: {respuesta.reason}')
+        print(f'Location: {respuesta.headers.get("Location", "No redirección")} | Cookie: {_cookie}')
+        print("-" * 120)
+        cookies_dict = respuesta.cookies.get_dict()
+        _cookie = "; ".join([f"{k}={v}" for k, v in cookies_dict.items()])
+        _cookie = unquote(_cookie)
+        loginComprobar = respuesta.headers.get("Location", "No redirección")
         progress = 50
         progress_var.set(progress)
         progress_bar.update()
         time.sleep(1)
-
-        print("\n##### 3. PETICIÓN LOGIN #####")
-        data["username"] = username.get()
-        data["password"] = password.get()
-        print(f'POST a: {action} con data keys: {list(data.keys())}')
-        r2 = self.session.post(action, data=data, allow_redirects=True)
-        print(f"Status: {r2.status_code} | URL final: {r2.url}")
-        progress = 75
-        progress_var.set(progress)
-        progress_bar.update()
-        time.sleep(1)
-
-        # Validamos que no seguimos en login
-        if "login/index.php" in r2.url:
+        
+        if "testsession" in str(loginComprobar):
+            print("\n##### 3. PETICIÓN #####")
+            metodo = 'GET'
+            uri = respuesta.headers["Location"]
+            cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': _cookie}
+            print(f'Método: {metodo} | URI: {uri}')
+            respuesta = requests.request(metodo, uri, headers=cabeceras, data='', allow_redirects=False)
+            print(f'Status code: {respuesta.status_code} | Descripción: {respuesta.reason}')
+            print(f'Location: {respuesta.headers.get("Location", "No redirección")} | Cookie: {_cookie}')
+            print("-" * 120)
+            progress = 75
+            progress_var.set(progress)
+            progress_bar.update()
+            time.sleep(1)
             popup.destroy()
-            messagebox.showerror("Login failed", "Usuario o contraseña incorrectos.")
-            return
 
-        print("\n##### 4. BUSCAR CURSO #####")
-        soup2 = BeautifulSoup(r2.text, "html.parser")
-        for enlace in soup2.find_all('a', href=True):
-            if "Sistemas Web" in enlace.get_text():
-                href = enlace['href']
-                self._curso = href if href.startswith("http") else urljoin(r2.url, href)
-                print(f"Curso encontrado: {self._curso}")
-                break
+            print("\n##### 4. PETICION #####")
+            metodo = 'GET'
+            uri = respuesta.headers["Location"]
+            cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': _cookie}
+            print(f'Método: {metodo} | URI: {uri}')
+            respuesta = requests.request(metodo, uri, headers=cabeceras, data='', allow_redirects=False)
+            print(f'Status code: {respuesta.status_code} | Descripción: {respuesta.reason}')
+            print(f'Location: {respuesta.headers.get("Location", "No redirección")} | Cookie: {_cookie}')
+            print("-" * 120)
+            progress = 100
+            progress_var.set(progress)
+            progress_bar.update()
+            time.sleep(1)
+            popup.destroy()
+
+
+        if  "testsession"in str(loginComprobar):
+            self._login = 1
+            self._cookie = _cookie
+            html = BeautifulSoup(respuesta.text, "html.parser")
+            asignatura = "Sistemas Web"
+            # buscar uri de sistemas web
+            for enlace in html.find_all('a'):
+                if enlace.string and asignatura in enlace.get_text():
+                    uri = enlace.get('href', 'No disponible')
+            self._curso = uri
+            self._root.destroy()
         else:
-            popup.destroy()
-            messagebox.showerror("Login Error", "No se encontró el enlace a Sistemas Web.")
-            return
-
-        progress = 100
-        progress_var.set(progress)
-        progress_bar.update()
-        time.sleep(1)
-        popup.destroy()
-
-        self._login = 1
-        self._root.destroy()
+            messagebox.showinfo("Alert Message", "Login incorrect!")
+            exit(0)
 
     def get_pdf_refs(self):
         popup, progress_var, progress_bar = helper.progress("get_pdf_refs", "Downloading PDF list...")
@@ -133,66 +161,64 @@ class eGela:
         progress_var.set(progress)
         progress_bar.update()
 
-        print("\n##### 5. PETICIÓN Página principal de la asignatura #####")
-        r = self.session.get(self._curso)
-        print(f"Status: {r.status_code} | URL: {r.url}")
-        soup = BeautifulSoup(r.text, "html.parser")
-
-        # Crear diccionario de secciones
+        print("\n##### 4. PETICIÓN (Página principal de la asignatura en eGela) #####")
+        metodo = 'GET'
+        cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': self._cookie}
+        print(f'Método: {metodo} | URI: {self._curso}')
+        respuestaSW = requests.request(metodo, self._curso, headers=cabeceras, data='', allow_redirects=False)
+        print(f'Status code: {respuestaSW.status_code} | Descripción: {respuestaSW.reason}')
+        print("-" * 120)
+        soup = BeautifulSoup(respuestaSW.text, "html.parser")
+        # Crear diccionario
         sections = {}
         tabs = soup.select(".nav.nav-tabs .nav-item a.nav-link")
+
         for tab in tabs:
-            title = tab.get_text().strip()
+            title = tab.contents[0].strip()  # obtiene el nombre de la sección
             link = tab.get("href")
             if link and "&section" in link:
-                sections[title] = link
-        num = len(sections) or 1
-        step = 100.0 / num
-        print(f"Secciones encontradas: {list(sections.keys())}")
+                sections[title] = link  # mete el link de la sección
+        num_secciones_eGela = len(sections)
+        progress_step = float(100.0 / num_secciones_eGela)
 
+
+        print("\n##### Analisis del HTML... #####")
+        # Buscar las pestañas de navegación
+
+        print(sections)  # Imprime el diccionario con los títulos y enlaces
         enlaces_recursos = []
-        for nombre, url in sections.items():
-            print(f"\nSección: {nombre}")
-            recursos = self.obtener_enlaces_resource(url)
-            for recurso in recursos:
+        for nombre, url in sections.items():  # por cada seccion
+            print(f"Sección: {nombre}")
+            recursos = self.obtener_enlaces_resource(url)  # Esto devuelve una lista de URLs de la seccion
+            for recurso in recursos:  # Iteramos sobre cada enlace individualmente
                 uri, nombre_archivo = self.obtener_uri_enlace(recurso)
-                if uri.lower().endswith(".pdf"):
-                    # HEAD para obtener tamaño
-                    head = self.session.head(uri, allow_redirects=True)
-                    size_b = int(head.headers.get("Content-Length", 0))
-                    size_mb = size_b / (1024**2)
+                if uri and uri.endswith(".pdf"):
                     enlaces_recursos.append({
                         "uri": uri,
                         "nombre": nombre_archivo,
-                        "size": size_mb
                     })
-                    print(f"PDF añadido: {nombre_archivo} ({size_mb:.2f} MB)")
-            progress += step
+            progress_step = float(100.0 / num_secciones_eGela)
+            progress += progress_step
             progress_var.set(progress)
             progress_bar.update()
             time.sleep(0.1)
-
+            print(f" {len(recursos)} enlaces encontrados.")
+        self._refs=enlaces_recursos
+        print(enlaces_recursos)
         popup.destroy()
-        self._refs = enlaces_recursos
-        print(f"\nTotal PDFs encontrados: {len(enlaces_recursos)}")
         return self._refs
 
     def get_pdf(self, selection):
-        print("\t##### Descargando PDF seleccionado #####")
-        pdf_obj = self._refs[selection]
-        base = pdf_obj['nombre']
-        pdf_name = base if base.lower().endswith(".pdf") else base + ".pdf"
-        print(f"Nombre final: {pdf_name}")
-        print(f"URL: {pdf_obj['uri']}")
 
-        r = self.session.get(pdf_obj["uri"], allow_redirects=True, stream=True)
-        print(f"Status: {r.status_code}")
-        r.raise_for_status()
+        print("\t##### Descargando  PDF... #####")
+        cabeceras = {
+            'Cookie': f'MoodleSessionegela={self._cookie}'
+        }
+        pdf_object = self._refs[selection]
+        pdf_name = pdf_object['nombre'] + ".pdf"
+        pdf = pdf_object['uri']
+        pdf_response = requests.request('GET', pdf, headers=cabeceras, allow_redirects=False)
+        pdf_link = requests.request('GET', pdf_response.headers['Location'], headers=cabeceras, allow_redirects=False)
+        pdf_content=pdf_link.content
 
-        content = bytearray()
-        for chunk in r.iter_content(chunk_size=8192):
-            if chunk:
-                content.extend(chunk)
-        print(f"Tamaño descargado: {len(content)} bytes")
-
-        return pdf_name, bytes(content)
+        return pdf_name, pdf_content
