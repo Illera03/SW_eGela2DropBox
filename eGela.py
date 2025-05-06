@@ -21,10 +21,10 @@ class eGela:
         self._root = root
 
     def obtener_uri_enlace(self, url):
-        print(f"Obteniendo página: {url}")  # Mensaje de depuración
+        print(f"  - Obteniendo página: {url}")  # Mensaje de depuración
         cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': self._cookie}
         respuesta = requests.get(url, headers=cabeceras, allow_redirects=False)
-        print("Página obtenida correctamente")  # Mensaje de depuración
+        print("  + Página obtenida correctamente\n")  # Mensaje de depuración
 
         # Obtenemos la Location (URI de redirección)
         location = respuesta.headers.get("Location", "No redirección")
@@ -59,7 +59,7 @@ class eGela:
         progress_var.set(progress)
         progress_bar.update()
 
-        print("##### 1. PETICIÓN #####")
+        print("\n##### 1. PETICIÓN #####")
         metodo = 'GET'
         uri = "https://egela.ehu.eus/login/index.php"
         cabeceras = {'Host': 'egela.ehu.eus'}
@@ -72,6 +72,7 @@ class eGela:
         _cookie = unquote(cookies_str)
         print(f'Status code: {respuesta.status_code} | Descripción: {respuesta.reason}')
         print(f'Location: {respuesta.headers.get("Location", "No redirección")} | Cookie: {_cookie}')
+        print("\n")
         print("-" * 120)
 
         progress = 25
@@ -88,7 +89,10 @@ class eGela:
         respuesta = requests.request(metodo, uri, headers=cabeceras, data=cuerpo, allow_redirects=False)
         print(f'Status code: {respuesta.status_code} | Descripción: {respuesta.reason}')
         print(f'Location: {respuesta.headers.get("Location", "No redirección")} | Cookie: {_cookie}')
+        print("\n")
         print("-" * 120)
+        
+        #! Esto de abajo no debería ser la 3era petición?
         # Extraer el logintoken con BeautifulSoup
         soup = BeautifulSoup(respuesta.text, "html.parser")
         token_input = soup.find("input", {"name": "logintoken"})
@@ -129,7 +133,7 @@ class eGela:
             time.sleep(1)
             popup.destroy()
 
-            print("\n##### 4. PETICION #####")
+            print("\n##### 4. PETICIÓN #####")
             metodo = 'GET'
             uri = respuesta.headers["Location"]
             cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': _cookie}
@@ -165,7 +169,7 @@ class eGela:
         progress_var.set(progress)
         progress_bar.update()
 
-        print("\n##### 4. PETICIÓN (Página principal de la asignatura en eGela) #####")
+        print("\n##### 5. PETICIÓN (Página principal de la asignatura en eGela) #####")
         metodo = 'GET'
         cabeceras = {'Host': 'egela.ehu.eus', 'Cookie': self._cookie}
         print(f'Método: {metodo} | URI: {self._curso}')
@@ -185,11 +189,12 @@ class eGela:
         num_secciones_eGela = len(sections)
         progress_step = float(100.0 / num_secciones_eGela)
 
-        print("\n##### Analisis del HTML... #####")
+        print("\n##### Análisis del HTML... #####")
         # Buscar las pestañas de navegación
 
-        print(sections)  # Imprime el diccionario con los títulos y enlaces
+        #print(sections)  # Imprime el diccionario con los títulos y enlaces
         enlaces_recursos = []
+        print("\n")
         for nombre, url in sections.items():  # por cada seccion
             print(f"Sección: {nombre}")
             recursos = self.obtener_enlaces_resource(url)  # Esto devuelve una lista de URLs de la seccion
@@ -215,9 +220,9 @@ class eGela:
             progress_var.set(progress)
             progress_bar.update()
             time.sleep(0.1)
-            print(f" {len(recursos)} enlaces encontrados.")
+            print(f"\n  ---{len(recursos)} enlaces encontrados en esta sección ---\n")
         self._refs = enlaces_recursos
-        print(enlaces_recursos)
+        # print(enlaces_recursos)
         popup.destroy()
         return self._refs
 

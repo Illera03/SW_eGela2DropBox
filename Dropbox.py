@@ -22,6 +22,7 @@ class Dropbox:
         self._root = root
 
     def local_server(self):
+        print("\n### DROPBOX ###\n")
         # por el puerto 8090 esta escuchando el servidor que generamos
         server_socket = socket(AF_INET, SOCK_STREAM)
         server_socket.bind((server_addr, server_port))
