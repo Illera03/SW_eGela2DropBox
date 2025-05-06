@@ -1,3 +1,10 @@
+# Nombre y apellidos: Jorge Illera Rivera, Bruno Izaguirre Martínez de Marañón e Iker Argulo Galán
+# Asignatura y grupo: Sistemas Web, GO1
+# Fecha de entrega: 09/05/2025
+# Nombre de la tarea: Actividad 4: eGela2Dropbox
+# Breve descripción del entregable: La aplicación eGela2Dropbox permite subir de manera selectiva los ficheros PDF del aula virtual de la asignatura Sistemas Web en eGela, 
+#                                   a un directorio de Dropbox.
+
 import requests
 import urllib
 import webbrowser
@@ -54,11 +61,6 @@ class Dropbox:
         return auth_code
 
     def do_oauth(self):
-        #############################################
-        # RELLENAR CON CODIGO DE LAS PETICIONES HTTP
-        # Y PROCESAMIENTO DE LAS RESPUESTAS HTTP
-        # PARA LA OBTENCION DEL ACCESS TOKEN
-        #############################################
         # Authorization
         servidor = 'www.dropbox.com'
         params = {'response_type': 'code', 'client_id': app_key, 'redirect_uri': redirect_uri}

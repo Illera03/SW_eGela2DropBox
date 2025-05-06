@@ -1,4 +1,10 @@
-# -*- coding: UTF-8 -*-
+# Nombre y apellidos: Jorge Illera Rivera, Bruno Izaguirre Martínez de Marañón e Iker Argulo Galán
+# Asignatura y grupo: Sistemas Web, GO1
+# Fecha de entrega: 09/05/2025
+# Nombre de la tarea: Actividad 4: eGela2Dropbox
+# Breve descripción del entregable: La aplicación eGela2Dropbox permite subir de manera selectiva los ficheros PDF del aula virtual de la asignatura Sistemas Web en eGela, 
+#                                   a un directorio de Dropbox.
+
 import tkinter as tk
 from tkinter import messagebox, ttk
 import os
@@ -52,9 +58,6 @@ def make_treeview(parent):
     return tree
 
 def transfer_files():
-    if not selected_items1:
-        messagebox.showwarning("Aviso", "Selecciona al menos un PDF para transferir.")
-        return
     popup, progress_var, progress_bar = helper.progress("transfer_file", "Transfering files...")
     progress = 0
     progress_var.set(progress)
@@ -62,8 +65,7 @@ def transfer_files():
     progress_step = float(100.0 / len(selected_items1))
 
     for each in selected_items1:
-        idx = tree1.index(each)
-        pdf_name, pdf_file = egela.get_pdf(idx)
+        pdf_name, pdf_file = egela.get_pdf(each)
 
         progress_bar.update()
         newroot.update()
@@ -87,12 +89,8 @@ def transfer_files():
     popup.destroy()
     dropbox.list_folder(msg_listbox2)
     msg_listbox2.yview(tk.END)
-
-def delete_files():
-    if not selected_items2:
-        messagebox.showwarning("Aviso", "Selecciona al menos un archivo para borrar.")
-        return
     
+def delete_files():
     popup, progress_var, progress_bar = helper.progress("delete_file", "Deleting files...")
     progress = 0
     progress_var.set(progress)
@@ -120,7 +118,7 @@ def name_folder(folder_name):
     else:
         dropbox._path = dropbox._path + '/' + str(folder_name)
     dropbox.create_folder(dropbox._path)
-    var_path.set(dropbox._path)
+    var.set(dropbox._path)
     dropbox._root.destroy()
     dropbox.list_folder(msg_listbox2)
 
@@ -176,36 +174,36 @@ def rename_file():
 
 
 ##########################################################################################################
-selected_items1 = []
-selected_items2 = []
+
 def check_credentials(event= None):
     egela.check_credentials(username, password)
 
-def on_select_tree(event):
+def on_selecting1(event):
     global selected_items1
-    selected_items1 = tree1.selection()
+    widget = event.widget
+    selected_items1 = widget.curselection()
+    print (selected_items1)
 
-def on_select_list2(event):
+def on_selecting2(event):
     global selected_items2
-    selected_items2 = msg_listbox2.curselection()
+    widget = event.widget
+    selected_items2 = widget.curselection()
+    print (selected_items2)
 
-def on_double_click_list2(event):
-    sel = msg_listbox2.curselection()
-    if not sel:
-        return
-    idx = sel[0]
-    name = dropbox._files[idx]['name']
-    # Subir a la carpeta padre
-    if name in ('..', '...'):
-        parent = os.path.dirname(dropbox._path.rstrip('/'))
-        dropbox._path = parent if parent else '/'
+def on_double_clicking2(event):
+    widget = event.widget
+    selection = widget.curselection()
+    if selection[0] == 0 and dropbox._path != "/":
+        head, tail = os.path.split(dropbox._path)
+        dropbox._path = head
     else:
-        entry = dropbox._files[idx]
-        # Navegar solo si es carpeta
-        if entry.get('.tag') == 'folder':
-            dropbox._path = (dropbox._path.rstrip('/') + '/' + name) if dropbox._path != '/' else '/' + name
-        else:
-            return
+        selected_file = dropbox._files[selection[0]]
+        if selected_file['.tag'] == 'folder':
+            if dropbox._path == "/":
+                dropbox._path = dropbox._path + selected_file['name']
+            else:
+                dropbox._path = dropbox._path + '/' + selected_file['name']
+    var.set(dropbox._path)
     dropbox.list_folder(msg_listbox2)
 
 def preview_pdf():
@@ -213,18 +211,18 @@ def preview_pdf():
         messagebox.showwarning("Aviso", "Selecciona un único PDF para vista previa.")
         return
 
-    idx = tree1.index(selected_items1[0])
+    idx = selected_items1[0]
     pdf_name, pdf_data = egela.get_pdf(idx)
 
-    tmp = os.path.join(tempfile.gettempdir(), pdf_name)
-    with open(tmp, "wb") as f:
+    tmp_path = os.path.join(tempfile.gettempdir(), pdf_name)
+    with open(tmp_path, "wb") as f:
         f.write(pdf_data)
 
     try:
         if os.name == "nt":
-            os.startfile(tmp)
+            os.startfile(tmp_path)
         else:
-            webbrowser.open(tmp)
+            webbrowser.open(tmp_path)
     except Exception as e:
         messagebox.showerror("Error", f"No se pudo abrir el PDF: {e}")
 ##########################################################################################################
@@ -277,74 +275,116 @@ root.mainloop()
 # eGela -> Dropbox
 
 newroot = tk.Tk()
-newroot.geometry("1000x450")
-newroot.iconbitmap("./favicon.ico")
-newroot.title("eGela -> Dropbox")
+newroot.geometry("850x400")
+newroot.iconbitmap('./favicon.ico') #
+newroot.title("eGela -> Dropbox") #
 helper.center(newroot)
 
-# Estilo suave
-style = ttk.Style(newroot)
-style.configure("Treeview", font=("Segoe UI", 9))
-style.configure("Treeview.Heading", font=("Segoe UI", 10, "bold"))
-
-# Grid layout
 newroot.rowconfigure(0, weight=1)
 newroot.rowconfigure(1, weight=5)
-newroot.rowconfigure(2, weight=0)
 newroot.columnconfigure(0, weight=6)
 newroot.columnconfigure(1, weight=1)
 newroot.columnconfigure(2, weight=6)
 newroot.columnconfigure(3, weight=1)
 
-# Etiquetas
-tk.Label(newroot, text="PDFs en Sistemas Web").grid(row=0, column=0, padx=5, pady=5)
-var_path = tk.StringVar(value=dropbox._path)
-tk.Label(newroot, textvariable=var_path).grid(row=0, column=2, padx=5, pady=5)
+bold_font = ("Segoe UI", 10, "bold")
 
-# Treeview eGela
+# Etigueta PDFs en Sistemas Web (0,0)   #
+var2 = tk.StringVar()
+var2.set("PDFs en Sistemas Web")
+label2 = tk.Label(newroot, textvariable=var2)
+label2.grid(column=0, row=0, ipadx=5, ipady=5)
+
+# Etigueta del directorio de Dropbox (0,2)
+var = tk.StringVar()
+var.set(dropbox._path)
+label = tk.Label(newroot, textvariable=var)
+label.grid( row=0, column=2, ipadx=5, ipady=5)
+
+# Frame con lista de PDFs e eGela (1,0)
+selected_items1 = None
+messages_frame1 = tk.Frame(newroot)
+msg_listbox1 = make_listbox(messages_frame1)
+msg_listbox1.bind('<<ListboxSelect>>', on_selecting1)
+msg_listbox1.pack(side=tk.LEFT, fill=tk.BOTH)
+#messages_frame1.pack()
+messages_frame1.grid(row=1, column=0, ipadx=10, ipady=10, padx=2, pady=2) #
+
+# Frame con boton >>>  y Preview
 frame1 = tk.Frame(newroot)
-tree1 = make_treeview(frame1)
-tree1.bind("<<TreeviewSelect>>", on_select_tree)
-tree1.pack(fill=tk.BOTH, expand=True)
-frame1.grid(row=1, column=0, padx=2, pady=2)
 
-# Botones Transfer & Preview
-btns = tk.Frame(newroot)
-tk.Button(btns, text=">>>", width=10, command=transfer_files).pack(pady=5)
-tk.Button(btns, text="Preview", width=10, command=preview_pdf).pack(pady=5)
-btns.grid(row=1, column=1, padx=2, pady=2)
-
-# Listbox Dropbox
-frame2 = tk.Frame(newroot)
-msg_listbox2 = make_listbox(frame2)
-msg_listbox2.bind("<<ListboxSelect>>", on_select_list2)
-msg_listbox2.bind('<Double-Button-1>', on_double_click_list2)
-msg_listbox2.pack(fill=tk.BOTH, expand=True)
-frame2.grid(row=1, column=2, padx=2, pady=2)
-
-# Botones acciones Dropbox
-frame3 = tk.Frame(newroot)
-tk.Button(frame3, bg="orange", text="Delete", width=10, command=delete_files).pack(pady=2)
-tk.Button(frame3, bg="blue", text="Rename", width=10, command=rename_file).pack(pady=2)
-tk.Button(frame3, text="Create folder", width=10, command=create_folder).pack(pady=2)
-tk.Button(frame3, bg="red", text="Exit", width=10, command=newroot.destroy).pack(pady=2)
-frame3.grid(row=1, column=3, padx=2, pady=2)
-
-# Footer centrado
-footer = tk.Label(
-    newroot,
-    text="Gracias por usar nuestro programa",
-    bg=newroot.cget("bg"),
-    fg="gray"
+# Botón Transfer
+button1 = tk.Button(
+    frame1, borderwidth=4, text=">>>", width=12, pady=8,
+    bg="#9C27B0", fg="white", activebackground="#7B1FA2",
+    font=bold_font, command=transfer_files
 )
-footer.grid(row=2, column=0, columnspan=4, sticky="s", pady=5)
+button1.pack(padx=2, pady=4)
 
-# Cargar PDFs con tamaño
-for p in pdfs:
-    tree1.insert("", tk.END, values=(p["nombre"], f"{p['size']:.2f} MB"))
-tree1.yview_moveto(1.0)
+# Botón Preview
+button2 = tk.Button(
+    frame1, borderwidth=4, text="Preview", width=12, pady=8,
+    bg="#FBC02D", fg="white", activebackground="#F9A825",
+    font=bold_font, command=preview_pdf
+)
+button2.pack(padx=2, pady=4)
 
-# Listar Dropbox inicialmente
+
+frame1.grid(row=1, column=1, ipadx=5, ipady=5)
+
+# Frame con ficheros en Dropbox
+selected_items2 = None
+messages_frame2 = tk.Frame(newroot)
+msg_listbox2 = make_listbox(messages_frame2)
+msg_listbox2.bind('<<ListboxSelect>>', on_selecting2)
+msg_listbox2.bind('<Double-Button-1>', on_double_clicking2)
+msg_listbox2.pack(side=tk.RIGHT, fill=tk.BOTH)
+
+#messages_frame2.pack()
+messages_frame2.grid(row=1, column=2, ipadx=10, ipady=10, padx=2, pady=2)
+
+# Frame con botones Create, Delete, Rename file y Exit
+
+frame2 = tk.Frame(newroot)
+
+# Botón Delete
+button2 = tk.Button(
+    frame2, borderwidth=4, text="Delete", width=12, pady=8,
+    bg="#ff4d4d", fg="white", activebackground="#cc0000",
+    font=bold_font, command=delete_files
+)
+button2.pack(padx=2, pady=4)
+
+# Botón Create folder
+button3 = tk.Button(
+    frame2, borderwidth=4, text="Create folder", width=12, pady=8,
+    bg="#4CAF50", fg="white", activebackground="#388E3C",
+    font=bold_font, command=create_folder
+)
+button3.pack(padx=2, pady=4)
+
+# Botón Rename file
+button_rename = tk.Button(
+    frame2, borderwidth=4, text="Rename file", width=12, pady=8,
+    bg="#2196F3", fg="white", activebackground="#1976D2",
+    font=bold_font, command=rename_file
+)
+button_rename.pack(padx=2, pady=4)
+
+# Botón Exit
+button_exit = tk.Button(
+    frame2, borderwidth=4, text="Exit", width=12, pady=8,
+    bg="#607D8B", fg="white", activebackground="#455A64",
+    font=bold_font, command=newroot.quit
+)
+button_exit.pack(padx=2, pady=4)
+
+frame2.grid(row=1, column=3,  ipadx=10, ipady=10)
+
+for each in pdfs:
+    msg_listbox1.insert(tk.END, each['nombre'])
+    msg_listbox1.yview(tk.END)
+
 dropbox.list_folder(msg_listbox2)
 
 newroot.mainloop()
