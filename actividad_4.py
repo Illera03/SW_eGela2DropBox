@@ -271,6 +271,39 @@ button.pack(side=tk.BOTTOM)
 
 root.mainloop()
 
+
+def whoami():
+    info = dropbox.whoami()
+    if info == None:
+        popup = tk.Toplevel(newroot)
+        popup.geometry('200x100')
+        popup.title('Dropbox')
+        if os.name == 'nt':
+            popup.iconbitmap('favicon.ico')
+        helper.center(popup)
+        label = tk.Label(popup, text="Error obtaining user info")
+        label.pack(side=tk.TOP)
+        button = tk.Button(popup, text="Close", command=popup.destroy)
+        button.pack(side=tk.BOTTOM)
+    else:
+        popup = tk.Toplevel(newroot)
+        popup.geometry('200x100')
+        popup.title('Dropbox')
+        if os.name == 'nt':
+            popup.iconbitmap('favicon.ico')
+        helper.center(popup)
+        label = tk.Label(popup, text="User info obtained successfully")
+        label.pack(side=tk.TOP)
+        # El nombre
+        label = tk.Label(popup, text="Name: " + info['name']['display_name'])
+        label.pack(side=tk.TOP)
+        # El email
+        label = tk.Label(popup, text="Email: " + info['email'])
+        label.pack(side=tk.TOP)
+        button = tk.Button(popup, text="Close", command=popup.destroy)
+        button.pack(side=tk.BOTTOM)
+
+
 ##########################################################################################################
 # eGela -> Dropbox
 
@@ -371,20 +404,37 @@ button_rename = tk.Button(
 )
 button_rename.pack(padx=2, pady=4)
 
+def exit_app():
+    messagebox.showinfo("Salir", "Gracias por usar la aplicación")
+    newroot.destroy()
+
 # Botón Exit
 button_exit = tk.Button(
     frame2, borderwidth=4, text="Exit", width=12, pady=8,
     bg="#607D8B", fg="white", activebackground="#455A64",
-    font=bold_font, command=newroot.quit
+    font=bold_font, command=exit_app
 )
+
 button_exit.pack(padx=2, pady=4)
 
+#Boton quien soy
+button7 = tk.Button(frame2, borderwidth=4, text="Who I am", width=12, pady=8,
+    bg="#607D8B", fg="white", activebackground="#455A64",
+    font=bold_font, command=whoami)
+button7.pack(padx=2, pady=4)
+
 frame2.grid(row=1, column=3,  ipadx=10, ipady=10)
+
 
 for each in pdfs:
     msg_listbox1.insert(tk.END, each['nombre'])
     msg_listbox1.yview(tk.END)
 
 dropbox.list_folder(msg_listbox2)
+# Mostrar espacio disponible en Dropbox
+space_var = tk.StringVar()
+space_var.set(dropbox.get_space_info())
+space_label = tk.Label(newroot, textvariable=space_var, font=("Segoe UI", 9), fg="gray")
+space_label.grid(row=2, column=0, columnspan=4, pady=(5, 10))
 
 newroot.mainloop()

@@ -205,3 +205,36 @@ class Dropbox:
         response = requests.post(uri, headers=headers, data=data)
         print("\tStatus:", response.status_code)
         print("\tRespuesta:", response.text)
+
+    def get_space_info(self):
+        print("/get_space_usage")
+        uri = 'https://api.dropboxapi.com/2/users/get_space_usage'
+        headers = {
+            "Authorization": f"Bearer {self._access_token}"
+        }
+        response = requests.post(uri, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            used = data['used']
+            allocation = data['allocation']['allocated']
+            free_space_gb = (allocation - used) / (1024 ** 3)
+            return f"Espacio libre en Dropbox: {free_space_gb:.2f} GB"
+        else:
+            print("Error al obtener el espacio:", response.text)
+            return "No se pudo obtener el espacio disponible"
+
+    def whoami(self):
+        print("/whoami")
+        uri = 'https://api.dropboxapi.com/2/users/get_current_account'
+        headers = {
+            'Authorization': f'Bearer {self._access_token}',
+        }
+        response = requests.post(uri, headers=headers)
+        if response.status_code == 200:
+            print("User info obtained successfully.")
+            return json.loads(response.content)
+        else:
+            print("Error obtaining user info.")
+            print(response.content)
+            return None
+
