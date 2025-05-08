@@ -112,15 +112,35 @@ def delete_files():
     popup.destroy()
     dropbox.list_folder(msg_listbox2)
 
+
 def name_folder(folder_name):
+    folder_name = str(folder_name).strip()
+
+    # Validaciones básicas
+    if not folder_name or folder_name in [".", "..", "..."]:
+        print("⚠ Nombre de carpeta inválido:", folder_name)
+        return
+
+    # Asegurar path correcto
     if dropbox._path == "/":
-        dropbox._path = dropbox._path + str(folder_name)
+        new_path = "/" + folder_name
     else:
-        dropbox._path = dropbox._path + '/' + str(folder_name)
-    dropbox.create_folder(dropbox._path)
-    var.set(dropbox._path)
-    dropbox._root.destroy()
-    dropbox.list_folder(msg_listbox2)
+        new_path = dropbox._path.rstrip("/") + "/" + folder_name
+
+    print("Intentando crear carpeta en:", new_path)
+
+    # Intentar crear carpeta
+    response = dropbox.create_folder(new_path)
+
+    # Solo si tiene éxito, actualizamos _path
+    if response and response.status_code == 200:
+        dropbox._path = new_path
+        var.set(dropbox._path)
+        dropbox._root.destroy()
+        dropbox.list_folder(msg_listbox2)
+    else:
+        print("Error creando carpeta.")
+
 
 def create_folder():
     popup = tk.Toplevel(newroot)

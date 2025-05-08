@@ -178,17 +178,18 @@ class Dropbox:
     def create_folder(self, path):
         print("/create_folder")
         uri = 'https://api.dropboxapi.com/2/files/create_folder_v2'
-        # https://www.dropbox.com/developers/documentation/http/documentation#files-create_folder
         headers = {
             "Authorization": f"Bearer {self._access_token}",
             "Content-Type": "application/json"
         }
 
-        data = json.dumps({ "path": path, "autorename": False })
+        data = json.dumps({"path": path, "autorename": False})
 
         response = requests.post(uri, headers=headers, data=data)
         print("\tStatus:", response.status_code)
         print("\tRespuesta:", response.text)
+
+        return response  # <--- AÑADIDO
 
     def rename_file(self, from_path, to_path):
         print("/rename_file")
