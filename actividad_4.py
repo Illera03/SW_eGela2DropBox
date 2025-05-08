@@ -292,8 +292,6 @@ def whoami():
         if os.name == 'nt':
             popup.iconbitmap('favicon.ico')
         helper.center(popup)
-        label = tk.Label(popup, text="User info obtained successfully")
-        label.pack(side=tk.TOP)
         # El nombre
         label = tk.Label(popup, text="Name: " + info['name']['display_name'])
         label.pack(side=tk.TOP)
@@ -417,9 +415,9 @@ button_exit = tk.Button(
 
 button_exit.pack(padx=2, pady=4)
 
-#Boton quien soy
-button7 = tk.Button(frame2, borderwidth=4, text="Who I am", width=12, pady=8,
-    bg="#607D8B", fg="white", activebackground="#455A64",
+# Botón para saber el usuario de Dropbox
+button7 = tk.Button(frame2, borderwidth=4, text="Who am I?", width=12, pady=8,
+    bg="#A52A2A", fg="white", activebackground="#8B0000",
     font=bold_font, command=whoami)
 button7.pack(padx=2, pady=4)
 
